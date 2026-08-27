@@ -26,9 +26,31 @@ const { handleVideo } = require("./commands/video");
 
 const app = express();
 app.use(express.json());
+
+// CORS : la page de pairing peut être hébergée ailleurs (preview Lovable).
+// ALLOWED_ORIGINS = "*" (défaut) ou liste séparée par des virgules.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes("*")) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  } else if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.use(express.static(path.join(__dirname, "web")));
 
 const PORT = process.env.PORT || 3000;
+
 
 let sock = null;
 let isRegistered = false;
