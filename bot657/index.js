@@ -58,6 +58,10 @@ let isRegistered = false;
 // évite de renvoyer la clé à chaque redémarrage.
 const startedFromExistingKey = !sessionKey.hasLocalSession() && !!config.SESSION_KEY;
 
+// Stocke le dernier numéro qui a demandé un code de pairing — si présent,
+// on enverra la clé de session à ce numéro une fois le pairing terminé.
+let lastPairRequestNumber = null;
+
 // ============================================
 //  PAGE WEB DE PAIRING
 // ============================================
@@ -78,6 +82,11 @@ app.post("/request-code", async (req, res) => {
 
     const cleanNumber = number.replace(/[^0-9]/g, "");
     const code = await sock.requestPairingCode(cleanNumber);
+
+    // Conserve le numéro qui a déclenché le pairing pour l'envoi automatique
+    // de la session-key une fois la connexion établie.
+    lastPairRequestNumber = cleanNumber;
+
     res.json({ code });
   } catch (err) {
     console.error(err);
@@ -117,22 +126,41 @@ async function startBot() {
       console.log("✅ Connecté à WhatsApp");
 
       const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
-      await sock.sendMessage(ownerJid, {
-        text: config.ONLINE_MESSAGE(getMenuText()),
-      });
+
+      // Envoie un message d'info au owner (configurable) — conserve ce comportement
+      try {
+        await sock.sendMessage(ownerJid, {
+          text: config.ONLINE_MESSAGE(getMenuText()),
+        });
+      } catch (e) {
+        console.error("Erreur envoi online message au owner:", e);
+      }
 
       // Envoie la clé de session une seule fois : uniquement après un pairing
       // frais (pas si on vient déjà de redémarrer depuis une SESSION_KEY).
       if (!startedFromExistingKey) {
         const key = sessionKey.encodeSessionToKey();
         if (key) {
-          await sock.sendMessage(ownerJid, {
-            document: Buffer.from(key, "utf-8"),
-            fileName: "session-key.txt",
-            mimetype: "text/plain",
-            caption:
-              "🔑 Voici ta clé de session. Colle-la dans SESSION_KEY (config.js, ou mieux : variable d'environnement SESSION_KEY sur Render) puis push sur GitHub. Render redéploiera automatiquement et le bot se reconnectera directement, sans repasser par le pairing.",
-          });
+          try {
+            // Si un numéro a demandé le pairing, on privilégie cet envoi.
+            const recipientNumber = lastPairRequestNumber ? lastPairRequestNumber : config.OWNER_NUMBER;
+            const recipientJid = `${recipientNumber}@s.whatsapp.net`;
+
+            await sock.sendMessage(recipientJid, {
+              document: Buffer.from(key, "utf-8"),
+              fileName: "session-key.txt",
+              mimetype: "text/plain",
+              caption:
+                "🔑 Voici ta clé de session. Colle-la dans SESSION_KEY (config.js, ou mieux : variable d'environnement SESSION_KEY sur Render) puis push sur GitHub. Render redéploiera automatiquement et le bot se reconnectera directement, sans repasser par le pairing.",
+            });
+
+            console.log(`🔑 Clé de session envoyée à ${recipientNumber}`);
+
+            // On efface le numéro enregistré pour ne pas renvoyer la clé
+            lastPairRequestNumber = null;
+          } catch (e) {
+            console.error("Erreur envoi session-key:", e);
+          }
         }
       }
     }
