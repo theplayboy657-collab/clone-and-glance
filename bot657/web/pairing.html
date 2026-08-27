@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>657 — Connexion</title>
+<style>
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0b141a;
+    color: #e9edef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+  .card {
+    background: #202c33;
+    padding: 32px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  p { color: #8696a0; font-size: 14px; margin-bottom: 24px; }
+  input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #2a3942;
+    background: #2a3942;
+    color: #e9edef;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+  }
+  button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    background: #00a884;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; }
+  .code {
+    margin-top: 24px;
+    font-size: 32px;
+    letter-spacing: 6px;
+    font-weight: 700;
+    color: #00a884;
+  }
+  .hint { font-size: 13px; color: #8696a0; margin-top: 12px; }
+  .error { color: #f15c6d; font-size: 14px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>657</h1>
+    <p>Entre ton numéro WhatsApp (format international, sans le +) pour obtenir ton code de jumelage.</p>
+    <input id="number" type="text" placeholder="Ex: 33612345678" />
+    <button id="submitBtn" onclick="requestCode()">Obtenir le code</button>
+    <div id="result"></div>
+  </div>
+
+<script>
+async function requestCode() {
+  const number = document.getElementById('number').value.trim();
+  const btn = document.getElementById('submitBtn');
+  const result = document.getElementById('result');
+  result.innerHTML = '';
+
+  if (!number) {
+    result.innerHTML = '<div class="error">Entre un numéro valide.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'Génération...';
+
+  try {
+    const res = await fetch('/request-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    const data = await res.json();
+
+    if (data.code) {
+      result.innerHTML = `
+        <div class="code">${data.code}</div>
+        <div class="hint">Va dans WhatsApp → Paramètres → Appareils connectés → Connecter un appareil → Connecter avec un numéro de téléphone, puis entre ce code.</div>
+        <div class="hint">✅ Une fois connecté, regarde WhatsApp : le bot t'enverra un fichier <b>session-key.txt</b> à coller dans <code>SESSION_KEY</code> (config.js sur GitHub, ou en variable d'environnement Render). Ça évitera de repasser par cette page au prochain redémarrage.</div>
+      `;
+    } else {
+      result.innerHTML = `<div class="error">${data.error || 'Erreur inconnue'}</div>`;
+    }
+  } catch (e) {
+    result.innerHTML = '<div class="error">Erreur de connexion au serveur.</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerText = 'Obtenir le code';
+}
+</script>
+</body>
+</html>
