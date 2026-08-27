@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: bot657
+    runtime: node
+    plan: starter
+    rootDir: bot657
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /status
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: PORT
+        value: 3000
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SESSION_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
