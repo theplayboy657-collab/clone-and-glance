@@ -74,3 +74,21 @@ sont possibles.
 ## Variables d'environnement (Render → Settings → Environment)
 - `ANTHROPIC_API_KEY` — requis pour `.chat`, `.jeu rp`, `.search`, `.translate`
 - `SESSION_KEY` — optionnel mais recommandé (voir sécurité ci-dessus)
+
+## Déploiement en 1 clic (blueprint)
+
+Le fichier `bot657/render.yaml` décrit le service : `npm install` / `npm start`,
+health check `/status`, auto-deploy activé. Sur Render → **New +** →
+**Blueprint** → sélectionne le repo : tout est pré-rempli.
+
+Variables à renseigner :
+- `ANTHROPIC_API_KEY` — `.chat`, `.jeu rp`, `.search`, `.translate`
+- `SESSION_KEY` — reconnexion auto sans pairing
+- `ALLOWED_ORIGINS` — origines autorisées à appeler l'API depuis un autre
+  domaine (page de pairing hébergée ailleurs). `*` par défaut ; mets l'URL
+  exacte de ta page pour restreindre.
+- `PORT` — injecté par Render, `3000` en local.
+
+La console web (page d'accueil de ce projet) vérifie `/status`, affiche un
+message clair si le backend dort ou n'est pas joignable, et génère le code de
+jumelage à distance.
