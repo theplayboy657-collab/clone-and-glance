@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
 });
 
 const BACKEND_URL_KEY = "bot657.backendUrl";
-const DEFAULT_BACKEND = (import.meta.env.VITE_BOT_BACKEND_URL as string) || "";
+const DEFAULT_BACKEND = (import.meta.env["VITE_BOT_BACKEND_URL"] as string) || "";
 
 function normalizeBackend(url: string) {
   const trimmed = url.trim().replace(/\/+$/, "");
